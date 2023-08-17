@@ -6,6 +6,7 @@ search.onsubmit = async (event) => {
 
   const tickerSymbol = event.target.tickerSymbol.value;
   const period = event.target.period.value;
+  const sort = event.target.sortby.value;
 
   const url = `https://macrotrends-finance.p.rapidapi.com/quotes/history-price?symbol=${tickerSymbol}&range=${period}`;
 
@@ -19,13 +20,35 @@ search.onsubmit = async (event) => {
 
   try {
     const response = await fetch(url, options);
-    const result = await response.json();
+    let result = await response.json();
+
+    if (sort == "earliestFirst") {
+      result = reverse(result);
+    }
 
     createTable(result);
   } catch (error) {
     console.error(error);
   }
 };
+
+function reverse(entries) {
+  const dates = entries["Date"];
+  const open = entries["Open"];
+  const high = entries["High"];
+  const low = entries["Low"];
+  const close = entries["Close"];
+  const volume = entries["Volume"];
+
+  return {
+    Date: dates.reverse(),
+    Open: open.reverse(),
+    High: high.reverse(),
+    Low: low.reverse(),
+    Close: close.reverse(),
+    Volume: volume.reverse(),
+  };
+}
 
 function createTable(entries) {
   const dates = entries["Date"];
