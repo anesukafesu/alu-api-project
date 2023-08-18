@@ -1,13 +1,28 @@
 const search = document.getElementById("search");
 const dataDisplay = document.getElementById("data-display");
 
-search.onsubmit = async (event) => {
+search.addEventListener("submit", handleSubmit, false);
+
+function handleSubmit(event) {
   event.preventDefault();
 
-  const tickerSymbol = event.target.tickerSymbol.value;
-  const period = event.target.period.value;
-  const sort = event.target.sortby.value;
+  const { tickerSymbol, period, sortby } = event.target;
 
+  let response = getData(tickerSymbol.value, period.value);
+
+  if (response.ok) {
+    createTable(response.result, sortby.value == "earliestFirst");
+  } else {
+    displayError(response.error);
+  }
+}
+
+function displayError(error) {
+  // Function to display error to the user
+  console.log(error);
+}
+
+async function getData(tickerSymbol, period) {
   const url = `https://macrotrends-finance.p.rapidapi.com/quotes/history-price?symbol=${tickerSymbol}&range=${period}`;
 
   const options = {
@@ -22,35 +37,14 @@ search.onsubmit = async (event) => {
     const response = await fetch(url, options);
     let result = await response.json();
 
-    if (sort == "earliestFirst") {
-      result = reverse(result);
-    }
-
-    createTable(result);
+    return { ok: true, result };
   } catch (error) {
-    console.error(error);
+    console.log(error);
+    return { ok: false, error };
   }
-};
-
-function reverse(entries) {
-  const dates = entries["Date"];
-  const open = entries["Open"];
-  const high = entries["High"];
-  const low = entries["Low"];
-  const close = entries["Close"];
-  const volume = entries["Volume"];
-
-  return {
-    Date: dates.reverse(),
-    Open: open.reverse(),
-    High: high.reverse(),
-    Low: low.reverse(),
-    Close: close.reverse(),
-    Volume: volume.reverse(),
-  };
 }
 
-function createTable(entries) {
+function createTable(entries, reversed = false) {
   const dates = entries["Date"];
   const open = entries["Open"];
   const high = entries["High"];
@@ -74,7 +68,10 @@ function createTable(entries) {
             </thead>
     `;
 
-  for (let i = 0; i < n; i++) {
+  // Dynamic Indices
+  const indices = Array.from(Array(n), (_, i) => (reversed ? n - i - 1 : i));
+
+  for (const i of indices) {
     const rowEntry = `
             <tr>
                 <td>${dates[i]}</td>
